@@ -63,8 +63,7 @@ export async function getWalkingRoute(
   try {
     const response = await fetch(url);
     const data = await response.json();
-
-    if (data.status === 200 && data.routes.length > 0) {
+    if (data.code === "Ok" && data.routes.length > 0) {
       const route = data.routes[0];
 
       // waypoints[0] is the snapped origin, waypoints[1] is the snapped destination.
