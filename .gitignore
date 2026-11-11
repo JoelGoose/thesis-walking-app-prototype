@@ -38,6 +38,7 @@ yarn-error.*
 *.tsbuildinfo
 
 example
+testing/requests.rest
 
 # generated native folders
 /ios
