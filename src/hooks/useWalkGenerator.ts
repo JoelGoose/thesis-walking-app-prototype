@@ -1,4 +1,5 @@
 import {
+  getIsochroneWithMeters,
   getIsochroneWithMinutes,
   getWalkingRoute,
 } from "@/services/mapbox-api";
@@ -9,28 +10,47 @@ export function useWalkGenerator() {
   const [routeData, setRouteData] = useState<RouteData | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
 
-  const generateWalk = async (
+  // Shared helper to fetch the snapped route once we have a raw destination
+  const buildRouteToDestination = async (
     userLocation: Coordinate,
-    minutes: number = 20,
+    rawDestination: Coordinate | null,
+  ) => {
+    if (!rawDestination) {
+      throw new Error("Failed to generate destination from Isochrone.");
+    }
+
+    const finalRoute = await getWalkingRoute(userLocation, rawDestination);
+    if (finalRoute) {
+      setRouteData(finalRoute);
+    }
+  };
+
+  const generateWalkByMinutes = async (
+    userLocation: Coordinate,
+    minutes: number,
   ) => {
     setIsGenerating(true);
     try {
-      // Get a random reachable point via Isochrone
       const rawDestination = await getIsochroneWithMinutes(
         userLocation,
         minutes,
       );
+      await buildRouteToDestination(userLocation, rawDestination);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
 
-      if (!rawDestination) {
-        throw new Error("Failed to generate destination");
-      }
-
-      // Fetch the snapped route and turn-by-turn data
-      const finalRoute = await getWalkingRoute(userLocation, rawDestination);
-
-      if (finalRoute) {
-        setRouteData(finalRoute);
-      }
+  const generateWalkByMeters = async (
+    userLocation: Coordinate,
+    meters: number,
+  ) => {
+    setIsGenerating(true);
+    try {
+      const rawDestination = await getIsochroneWithMeters(userLocation, meters);
+      await buildRouteToDestination(userLocation, rawDestination);
     } catch (error) {
       console.error(error);
     } finally {
@@ -40,5 +60,11 @@ export function useWalkGenerator() {
 
   const clearRoute = () => setRouteData(null);
 
-  return { routeData, isGenerating, generateWalk, clearRoute };
+  return {
+    routeData,
+    isGenerating,
+    generateWalkByMinutes,
+    generateWalkByMeters,
+    clearRoute,
+  };
 }

@@ -6,3 +6,4 @@ export interface RouteData {
   distanceMeters: number;
   durationSeconds: number;
 }
+export type PromptMode = "minutes" | "steps" | null;

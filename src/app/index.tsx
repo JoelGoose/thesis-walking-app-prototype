@@ -1,10 +1,12 @@
 import { env } from "@/config/env";
-import { Coordinate } from "@/utils/types";
+import { stepsToMeters } from "@/utils/conversions";
+import { Coordinate, PromptMode } from "@/utils/types";
 import Mapbox from "@rnmapbox/maps";
 import { useState } from "react";
 import { Button, StyleSheet, View } from "react-native";
 
 import { RouteOverlay } from "@/components/RouteOverlay";
+import { WalkPromptModal } from "@/components/WalkPromptModal";
 import { useLocationPermission } from "@/hooks/useLocationPermission";
 import { useWalkGenerator } from "@/hooks/useWalkGenerator";
 
@@ -12,16 +14,34 @@ Mapbox.setAccessToken(env.mapboxAccessToken);
 
 export default function App() {
   const { hasLocationPermission } = useLocationPermission();
-  const { routeData, isGenerating, generateWalk } = useWalkGenerator();
+  const {
+    routeData,
+    isGenerating,
+    generateWalkByMinutes,
+    generateWalkByMeters,
+  } = useWalkGenerator();
 
-  // We need to track the user's location so we can pass it to the generator
   const [userLocation, setUserLocation] = useState<Coordinate | null>(null);
+  const [promptMode, setPromptMode] = useState<PromptMode>(null);
 
-  const handleGeneratePress = () => {
-    if (userLocation) {
-      generateWalk(userLocation, 15); // Ask for a 15-minute walk
+  // This function gets called by the Modal when the user hits "Generate"
+  const handleConfirmGenerate = (numericValue: number) => {
+    if (!userLocation) return;
+
+    const currentMode = promptMode;
+    setPromptMode(null); // Close the modal immediately
+
+    if (currentMode === "minutes") {
+      const clampedMinutes = Math.min(Math.round(numericValue), 60);
+      void generateWalkByMinutes(userLocation, clampedMinutes);
+    } else if (currentMode === "steps") {
+      const meters = stepsToMeters(numericValue);
+      const clampedMeters = Math.min(meters, 100000);
+      void generateWalkByMeters(userLocation, clampedMeters);
     }
   };
+
+  const isDisabled = !userLocation || isGenerating;
 
   return (
     <View style={styles.container}>
@@ -33,7 +53,6 @@ export default function App() {
             visible
             showsUserHeadingIndicator
             onUpdate={(location) => {
-              // Mapbox returns longitude first in coords array
               setUserLocation({
                 longitude: location.coords.longitude,
                 latitude: location.coords.latitude,
@@ -42,18 +61,30 @@ export default function App() {
           />
         )}
 
-        {/* Handles all the line and pin rendering */}
         <RouteOverlay routeData={routeData} />
       </Mapbox.MapView>
 
-      {/* Floating UI overlay for the button */}
       <View style={styles.buttonContainer}>
-        <Button
-          title={isGenerating ? "Generating..." : "Generate Walk"}
-          onPress={handleGeneratePress}
-          disabled={!userLocation || isGenerating}
-        />
+        <View style={styles.buttonWrapper}>
+          <Button
+            title={isGenerating ? "Generating..." : "Walk by Time"}
+            onPress={() => setPromptMode("minutes")}
+            disabled={isDisabled}
+          />
+        </View>
+        <View style={styles.buttonWrapper}>
+          <Button
+            title={isGenerating ? "Generating..." : "Walk by Steps"}
+            onPress={() => setPromptMode("steps")}
+            disabled={isDisabled}
+          />
+        </View>
       </View>
+      <WalkPromptModal
+        mode={promptMode}
+        onClose={() => setPromptMode(null)}
+        onSubmit={handleConfirmGenerate}
+      />
     </View>
   );
 }
@@ -65,13 +96,18 @@ const styles = StyleSheet.create({
     position: "absolute",
     bottom: 40,
     alignSelf: "center",
+    flexDirection: "row",
+    gap: 12,
     backgroundColor: "white",
     padding: 10,
     borderRadius: 8,
-    elevation: 5, // Shadow for Android
-    shadowColor: "#000", // Shadow for iOS
+    elevation: 5,
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
+  },
+  buttonWrapper: {
+    minWidth: 130,
   },
 });
