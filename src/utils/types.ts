@@ -7,3 +7,9 @@ export interface RouteData {
   durationSeconds: number;
 }
 export type PromptMode = "minutes" | "steps" | null;
+
+export interface SavedRoute {
+  id: string;
+  createdAt: number;
+  routeData: RouteData;
+}

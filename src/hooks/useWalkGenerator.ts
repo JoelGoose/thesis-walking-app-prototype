@@ -60,11 +60,16 @@ export function useWalkGenerator() {
 
   const clearRoute = () => setRouteData(null);
 
+  const loadSavedRoute = (savedRouteData: RouteData) => {
+    setRouteData(savedRouteData);
+  };
+
   return {
     routeData,
     isGenerating,
     generateWalkByMinutes,
     generateWalkByMeters,
     clearRoute,
+    loadSavedRoute,
   };
 }
