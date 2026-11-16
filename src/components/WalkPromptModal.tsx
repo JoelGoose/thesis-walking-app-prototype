@@ -1,6 +1,14 @@
 import { PromptMode } from "@/utils/types";
 import { useEffect, useState } from "react";
-import { Button, Modal, StyleSheet, Text, TextInput, View } from "react-native";
+import {
+  Button,
+  Modal,
+  StyleSheet,
+  Switch,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
 
 interface WalkPromptModalProps {
   mode: PromptMode;
@@ -14,18 +22,22 @@ export function WalkPromptModal({
   onSubmit,
 }: WalkPromptModalProps) {
   const [inputValue, setInputValue] = useState("");
+  const [isRoundTrip, setIsRoundTrip] = useState(true);
 
-  // Clear the input every time the modal is opened
+  // Clear the input and reset the toggle every time the modal is opened
   useEffect(() => {
     if (mode !== null) {
       setInputValue("");
+      setIsRoundTrip(true);
     }
   }, [mode]);
 
   const handleConfirm = () => {
     const numericValue = Number(inputValue);
     if (numericValue > 0) {
-      onSubmit(numericValue);
+      // If round-trip is selected, divide the target by 2 for the destination
+      const finalValue = isRoundTrip ? numericValue / 2 : numericValue;
+      onSubmit(finalValue);
     }
   };
 
@@ -53,6 +65,15 @@ export function WalkPromptModal({
             onChangeText={setInputValue}
             autoFocus
           />
+
+          <View style={styles.toggleContainer}>
+            <Text style={styles.toggleLabel}>Round-trip</Text>
+            <Switch
+              value={isRoundTrip}
+              onValueChange={setIsRoundTrip}
+              trackColor={{ false: "#ccc", true: "#bf4040" }}
+            />
+          </View>
 
           <View style={styles.modalActions}>
             <Button title="Cancel" color="#666" onPress={onClose} />
@@ -97,6 +118,17 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     fontSize: 16,
     marginBottom: 16,
+  },
+  toggleContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 20,
+    paddingHorizontal: 4,
+  },
+  toggleLabel: {
+    fontSize: 16,
+    color: "#333",
   },
   modalActions: {
     flexDirection: "row",
