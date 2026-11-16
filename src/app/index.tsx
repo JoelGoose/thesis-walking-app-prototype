@@ -5,10 +5,12 @@ import Mapbox from "@rnmapbox/maps";
 import { useState } from "react";
 import { StyleSheet, View } from "react-native";
 
+import { PedometerOverlay } from "@/components/PedometerOverlay";
 import { RouteOverlay } from "@/components/RouteOverlay";
 import { WalkActionButtons } from "@/components/WalkActionButtons";
 import { WalkPromptModal } from "@/components/WalkPromptModal";
 import { useLocationPermission } from "@/hooks/useLocationPermission";
+import { usePedometer } from "@/hooks/usePedometer";
 import { useWalkGenerator } from "@/hooks/useWalkGenerator";
 
 Mapbox.setAccessToken(env.mapboxAccessToken);
@@ -26,6 +28,8 @@ export default function App() {
   const [userLocation, setUserLocation] = useState<Coordinate | null>(null);
   const [promptMode, setPromptMode] = useState<PromptMode>(null);
   const [isActiveWalk, setIsActiveWalk] = useState(false);
+
+  const { steps } = usePedometer(isActiveWalk);
 
   const handleConfirmGenerate = (numericValue: number) => {
     if (!userLocation) return;
@@ -59,7 +63,7 @@ export default function App() {
   return (
     <View style={styles.container}>
       <Mapbox.MapView style={styles.map}>
-        <Mapbox.Camera followUserLocation={!routeData} zoomLevel={14} />
+        <Mapbox.Camera followUserLocation={!routeData} zoomLevel={5} />
 
         {hasLocationPermission && (
           <Mapbox.UserLocation
@@ -76,6 +80,8 @@ export default function App() {
 
         <RouteOverlay routeData={routeData} />
       </Mapbox.MapView>
+
+      {isActiveWalk && <PedometerOverlay steps={steps} />}
 
       <WalkActionButtons
         isActiveWalk={isActiveWalk}

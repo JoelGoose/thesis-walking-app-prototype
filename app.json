@@ -47,13 +47,19 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Show current location on map."
+          "locationWhenInUsePermission": "Allow the app to show current location on map."
         }
       ],
       [
         "@rnmapbox/navigation",
         {
           "RNMapboxNavigationVersion": "3.33.0"
+        }
+      ],
+      [
+        "expo-sensors",
+        {
+          "motionPermission": "Allow the app to access your device motion to count your steps."
         }
       ]
     ],
