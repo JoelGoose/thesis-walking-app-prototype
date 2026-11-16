@@ -1,6 +1,5 @@
-// src/components/TurnByTurnView.tsx
 import { RouteData } from "@/utils/types";
-import Navigation, { RNNavigationView, Route } from "@rnmapbox/navigation"; // <-- Add Navigation and Route to imports
+import Navigation, { RNNavigationView, Route } from "@rnmapbox/navigation";
 import { useEffect, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
@@ -21,7 +20,6 @@ export function TurnByTurnView({ routeData, onExit }: TurnByTurnViewProps) {
         const origin = routeData.routeCoordinates[0];
         const destination = routeData.snappedDestination;
 
-        // 1. Manually request the route using the walking profile
         const { main } = await Navigation.requestRoutes({
           waypoints: [
             [origin.longitude, origin.latitude],
@@ -44,7 +42,7 @@ export function TurnByTurnView({ routeData, onExit }: TurnByTurnViewProps) {
     void fetchWalkingProfile();
 
     return () => {
-      // 3. Clean up native memory when the navigation view unmounts
+      // Clean up native memory when the navigation view unmounts
       if (activeRoute) {
         activeRoute.release();
       }
@@ -60,7 +58,7 @@ export function TurnByTurnView({ routeData, onExit }: TurnByTurnViewProps) {
     );
   }
 
-  // 2. Pass the fetched `navRoute` into the `route` prop instead of `waypoints`
+  // Pass the fetched `navRoute` into the `route` prop
   return (
     <View style={styles.container}>
       <RNNavigationView

@@ -1,5 +1,5 @@
 import { env } from "@/config/env";
-import { stepsToMeters } from "@/utils/conversions";
+import { getRouteBounds, stepsToMeters } from "@/utils/conversions";
 import { Coordinate, PromptMode, RouteData } from "@/utils/types";
 import Mapbox from "@rnmapbox/maps";
 import { useState } from "react";
@@ -83,21 +83,28 @@ export default function App() {
     setIsSavedModalVisible(false);
   };
 
-  // FULL SCREEN INTERCEPT: Render the Mapbox Navigation SDK if enabled
-  if (isTurnByTurn && routeData) {
-    return (
-      <TurnByTurnView
-        routeData={routeData}
-        onExit={() => setIsTurnByTurn(false)}
-      />
-    );
-  }
-
-  // STANDARD PLANNING MAP VIEW
   return (
     <View style={styles.container}>
+      {/* MAIN MAP: Always rendered in the background so it never loses camera state */}
       <Mapbox.MapView style={styles.map}>
-        <Mapbox.Camera followUserLocation={!routeData} zoomLevel={14} />
+        <Mapbox.Camera
+          animationMode="easeTo"
+          {...(!routeData && {
+            followUserLocation: true,
+            followZoomLevel: 14,
+            zoomLevel: 14,
+          })}
+          {...(routeData && {
+            bounds: {
+              ...getRouteBounds(routeData.routeCoordinates),
+              paddingTop: 80,
+              paddingBottom: 250,
+              paddingLeft: 40,
+              paddingRight: 40,
+            },
+            animationDuration: 1000,
+          })}
+        />
 
         {hasLocationPermission && (
           <Mapbox.UserLocation
@@ -115,42 +122,57 @@ export default function App() {
         <RouteOverlay routeData={routeData} />
       </Mapbox.MapView>
 
-      {isActiveWalk && <PedometerOverlay steps={steps} />}
+      {/* PLANNING UI: Hide these elements when navigation is active */}
+      {!isTurnByTurn && (
+        <>
+          {isActiveWalk && <PedometerOverlay steps={steps} />}
 
-      <View style={styles.topRightContainer}>
-        {isActiveWalk ? (
-          <View style={styles.activeTopRightButtons}>
-            <Button
-              title="Save Route"
-              color="#bf4040"
-              onPress={handleSaveRoute}
-            />
-            <View style={styles.divider} />
-            <Button
-              title="Navigation"
-              color="#007AFF"
-              onPress={() => setIsTurnByTurn(true)}
-            />
+          <View style={styles.topRightContainer}>
+            {isActiveWalk ? (
+              <View style={styles.activeTopRightButtons}>
+                <Button
+                  title="Save Route"
+                  color="#bf4040"
+                  onPress={handleSaveRoute}
+                />
+                <View style={styles.divider} />
+                <Button
+                  title="Navigation"
+                  color="#007AFF"
+                  onPress={() => setIsTurnByTurn(true)}
+                />
+              </View>
+            ) : (
+              <Button
+                title="Load Route"
+                color="#666"
+                onPress={() => setIsSavedModalVisible(true)}
+              />
+            )}
           </View>
-        ) : (
-          <Button
-            title="Load Route"
-            color="#666"
-            onPress={() => setIsSavedModalVisible(true)}
-          />
-        )}
-      </View>
 
-      <WalkActionButtons
-        isActiveWalk={isActiveWalk}
-        hasRoute={!!routeData}
-        isGenerating={isGenerating}
-        isDisabled={!userLocation || isGenerating}
-        onStartWalk={handleStartWalk}
-        onCancelWalk={handleCancelWalk}
-        onCompleteWalk={handleCompleteWalk}
-        onPromptMode={setPromptMode}
-      />
+          <WalkActionButtons
+            isActiveWalk={isActiveWalk}
+            hasRoute={!!routeData}
+            isGenerating={isGenerating}
+            isDisabled={!userLocation || isGenerating}
+            onStartWalk={handleStartWalk}
+            onCancelWalk={handleCancelWalk}
+            onCompleteWalk={handleCompleteWalk}
+            onPromptMode={setPromptMode}
+          />
+        </>
+      )}
+
+      {/* NAVIGATION UI: Rendered absolutely on top of everything else */}
+      {isTurnByTurn && routeData && (
+        <View style={StyleSheet.absoluteFill}>
+          <TurnByTurnView
+            routeData={routeData}
+            onExit={() => setIsTurnByTurn(false)}
+          />
+        </View>
+      )}
 
       <WalkPromptModal
         mode={promptMode}
