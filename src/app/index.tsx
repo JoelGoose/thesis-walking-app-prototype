@@ -8,8 +8,10 @@ import { Alert, Button, StyleSheet, View } from "react-native";
 import { PedometerOverlay } from "@/components/PedometerOverlay";
 import { RouteOverlay } from "@/components/RouteOverlay";
 import { SavedRoutesModal } from "@/components/SavedRoutesModal";
+import { TurnByTurnView } from "@/components/TurnByTurnView";
 import { WalkActionButtons } from "@/components/WalkActionButtons";
 import { WalkPromptModal } from "@/components/WalkPromptModal";
+
 import { useLocationPermission } from "@/hooks/useLocationPermission";
 import { usePedometer } from "@/hooks/usePedometer";
 import { useSavedRoutes } from "@/hooks/useSavedRoutes";
@@ -34,6 +36,10 @@ export default function App() {
   const [isActiveWalk, setIsActiveWalk] = useState(false);
   const [isSavedModalVisible, setIsSavedModalVisible] = useState(false);
 
+  // Navigation Engine State
+  const [isTurnByTurn, setIsTurnByTurn] = useState(false);
+
+  // Hook relies on isActiveWalk being true to start counting
   const { steps } = usePedometer(isActiveWalk);
 
   const handleConfirmGenerate = (numericValue: number) => {
@@ -54,23 +60,22 @@ export default function App() {
   const handleStartWalk = () => setIsActiveWalk(true);
 
   const handleCancelWalk = () => {
-    console.log("Walk cancelled!");
     setIsActiveWalk(false);
+    setIsTurnByTurn(false);
     clearRoute();
   };
 
   const handleCompleteWalk = () => {
     console.log("Walk completed!");
     setIsActiveWalk(false);
+    setIsTurnByTurn(false);
     clearRoute();
   };
 
   const handleSaveRoute = async () => {
     if (!routeData) return;
     const success = await saveRoute(routeData);
-    if (success) {
-      Alert.alert("Success", "Route saved to your library.");
-    }
+    if (success) Alert.alert("Success", "Route saved to your library.");
   };
 
   const handleSelectSavedRoute = (selectedRouteData: RouteData) => {
@@ -78,10 +83,21 @@ export default function App() {
     setIsSavedModalVisible(false);
   };
 
+  // FULL SCREEN INTERCEPT: Render the Mapbox Navigation SDK if enabled
+  if (isTurnByTurn && routeData) {
+    return (
+      <TurnByTurnView
+        routeData={routeData}
+        onExit={() => setIsTurnByTurn(false)}
+      />
+    );
+  }
+
+  // STANDARD PLANNING MAP VIEW
   return (
     <View style={styles.container}>
       <Mapbox.MapView style={styles.map}>
-        <Mapbox.Camera followUserLocation={!routeData} zoomLevel={5} />
+        <Mapbox.Camera followUserLocation={!routeData} zoomLevel={14} />
 
         {hasLocationPermission && (
           <Mapbox.UserLocation
@@ -103,11 +119,19 @@ export default function App() {
 
       <View style={styles.topRightContainer}>
         {isActiveWalk ? (
-          <Button
-            title="Save Route"
-            color="#bf4040"
-            onPress={handleSaveRoute}
-          />
+          <View style={styles.activeTopRightButtons}>
+            <Button
+              title="Save Route"
+              color="#bf4040"
+              onPress={handleSaveRoute}
+            />
+            <View style={styles.divider} />
+            <Button
+              title="Navigation"
+              color="#007AFF"
+              onPress={() => setIsTurnByTurn(true)}
+            />
+          </View>
         ) : (
           <Button
             title="Load Route"
@@ -150,7 +174,7 @@ const styles = StyleSheet.create({
   map: { flex: 1 },
   topRightContainer: {
     position: "absolute",
-    top: 60, // Align with PedometerOverlay height
+    top: 60,
     right: 20,
     backgroundColor: "white",
     borderRadius: 8,
@@ -159,6 +183,14 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
-    overflow: "hidden", // Ensures button respects border radius
+    overflow: "hidden",
+  },
+  activeTopRightButtons: {
+    flexDirection: "column",
+  },
+  divider: {
+    height: 1,
+    backgroundColor: "#ddd",
+    width: "100%",
   },
 });
