@@ -49,6 +49,12 @@
         {
           "locationWhenInUsePermission": "Show current location on map."
         }
+      ],
+      [
+        "@rnmapbox/navigation",
+        {
+          "RNMapboxNavigationVersion": "3.33.0"
+        }
       ]
     ],
     "experiments": {
